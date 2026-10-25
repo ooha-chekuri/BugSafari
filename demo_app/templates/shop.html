@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Field Supply — Demo Shop</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #17211c; background: #f4f6f2; }
+    body { max-width: 900px; margin: 3rem auto; padding: 0 1.25rem; }
+    header { margin-bottom: 2rem; } h1 { margin-bottom: .25rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    section { background: white; padding: 1.25rem; border: 1px solid #dfe5dc; border-radius: 12px; }
+    .product, .cart-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 0; border-bottom: 1px solid #edf0eb; }
+    button { border: 0; border-radius: 7px; padding: .55rem .8rem; color: white; background: #246b4b; cursor: pointer; }
+    button.remove { background: #8a4639; } input { width: 4rem; padding: .45rem; }
+    .totals { font-weight: 700; margin-top: 1rem; } .muted { color: #617068; }
+    @media (max-width: 650px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header><h1>Field Supply</h1><p class="muted">Useful gear for your next outing.</p></header>
+  <main class="grid">
+    <section aria-labelledby="products-title">
+      <h2 id="products-title">Products</h2>
+      <div class="product" data-product="trail-mug" data-price="18.00"><div><strong>Trail Mug</strong><br><span>$18.00</span></div><button data-testid="add-trail-mug">Add to cart</button></div>
+      <div class="product" data-product="field-notebook" data-price="12.50"><div><strong>Field Notebook</strong><br><span>$12.50</span></div><button data-testid="add-field-notebook">Add to cart</button></div>
+    </section>
+    <section aria-labelledby="cart-title">
+      <h2 id="cart-title">Your cart</h2>
+      <div id="cart-items" aria-live="polite"><p class="muted" data-testid="empty-cart">Your cart is empty.</p></div>
+      <p class="totals">Subtotal: <span data-testid="subtotal">$0.00</span></p>
+      <p class="totals">Total: <span data-testid="total">$0.00</span></p>
+      <h3>Checkout summary</h3><p data-testid="checkout-total">Total due: $0.00</p>
+    </section>
+  </main>
+  <script>
+    const catalog = { 'trail-mug': { name: 'Trail Mug', price: 18 }, 'field-notebook': { name: 'Field Notebook', price: 12.5 } };
+    const cart = {};
+    let shownTotal = 0;
+    const money = value => `$${value.toFixed(2)}`;
+    function render(updateTotal = true) {
+      const host = document.querySelector('#cart-items');
+      host.replaceChildren();
+      const ids = Object.keys(cart);
+      if (!ids.length) {
+        const empty = document.createElement('p'); empty.className = 'muted'; empty.dataset.testid = 'empty-cart'; empty.textContent = 'Your cart is empty.'; host.append(empty);
+      }
+      ids.forEach(id => {
+        const item = catalog[id]; const row = document.createElement('div'); row.className = 'cart-row'; row.dataset.testid = `cart-row-${id}`;
+        const name = document.createElement('strong'); name.textContent = item.name;
+        const quantity = document.createElement('input'); quantity.type = 'number'; quantity.min = '1'; quantity.max = '99'; quantity.value = cart[id]; quantity.setAttribute('aria-label', `${item.name} quantity`); quantity.dataset.testid = `quantity-${id}`;
+        quantity.addEventListener('change', () => { cart[id] = Math.max(1, Math.min(99, Number(quantity.value) || 1)); render(false); });
+        const line = document.createElement('span'); line.dataset.testid = `line-total-${id}`; line.textContent = money(item.price * cart[id]);
+        const remove = document.createElement('button'); remove.className = 'remove'; remove.textContent = 'Remove'; remove.setAttribute('aria-label', `Remove ${item.name}`); remove.dataset.testid = `remove-${id}`;
+        remove.addEventListener('click', () => { delete cart[id]; render(); });
+        row.append(name, quantity, line, remove); host.append(row);
+      });
+      if (updateTotal) shownTotal = Object.keys(cart).reduce((sum, id) => sum + catalog[id].price * cart[id], 0);
+      document.querySelector('[data-testid="subtotal"]').textContent = money(shownTotal);
+      document.querySelector('[data-testid="total"]').textContent = money(shownTotal);
+      document.querySelector('[data-testid="checkout-total"]').textContent = `Total due: ${money(shownTotal)}`;
+    }
+    document.querySelectorAll('[data-product]').forEach(product => product.querySelector('button').addEventListener('click', () => {
+      const id = product.dataset.product; cart[id] = (cart[id] || 0) + 1; render();
+    }));
+  </script>
+</body>
+</html>
