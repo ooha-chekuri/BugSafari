@@ -1,0 +1,1 @@
+"""Deterministic application invariant checks."""
