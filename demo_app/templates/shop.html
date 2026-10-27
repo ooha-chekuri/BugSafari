@@ -52,7 +52,7 @@
         quantity.addEventListener('change', () => { cart[id] = Math.max(1, Math.min(99, Number(quantity.value) || 1)); render(false); });
         const line = document.createElement('span'); line.dataset.testid = `line-total-${id}`; line.textContent = money(item.price * cart[id]);
         const remove = document.createElement('button'); remove.className = 'remove'; remove.textContent = 'Remove'; remove.setAttribute('aria-label', `Remove ${item.name}`); remove.dataset.testid = `remove-${id}`;
-        remove.addEventListener('click', () => { delete cart[id]; render(); });
+        remove.addEventListener('click', () => { delete cart[id]; render(false); });
         row.append(name, quantity, line, remove); host.append(row);
       });
       if (updateTotal) shownTotal = Object.keys(cart).reduce((sum, id) => sum + catalog[id].price * cart[id], 0);

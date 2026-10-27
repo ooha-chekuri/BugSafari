@@ -7,3 +7,39 @@ artifacts/*
 !artifacts/.gitkeep
 playwright-report/
 test-results/
+
+# runtime output
+.bugsafari/
+.coverage
+htmlcov/
+
+# tooling caches
+.mypy_cache/
+.ruff_cache/
+
+# packaging
+build/
+dist/
+*.egg-info/
+
+# Local secrets and environment
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated test and browser artifacts
+.bugsafari/
+playwright-report/
+test-results/
+
+# Local backups
+*.bak

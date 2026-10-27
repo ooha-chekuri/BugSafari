@@ -1,7 +1,17 @@
-"""Shared application configuration."""
+"""Compatibility shim.
 
-import os
+Configuration now lives in :mod:`bugsafari.config`; this module only re-exports
+the constants the original dashboard and explorer imported, so existing callers
+keep working during the migration.
+"""
 
-DEMO_HOST = "127.0.0.1"
-DEMO_PORT = int(os.environ.get("BUGSAFARI_PORT", "5000"))
-SCREENSHOT_PATH = "artifacts/latest.png"
+from bugsafari.config import PROJECT_ROOT, load_settings
+
+_settings = load_settings()
+
+DEMO_HOST = _settings.demo_host
+# Standalone demo port. Managed runs bind port 0 and never use this value.
+DEMO_PORT = 5000
+SCREENSHOT_PATH = str(_settings.artifact_dir / "latest.png")
+
+__all__ = ["DEMO_HOST", "DEMO_PORT", "PROJECT_ROOT", "SCREENSHOT_PATH"]

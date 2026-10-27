@@ -1,0 +1,45 @@
+{
+  "id": "cart-remove-total",
+  "name": "Removing a product updates cart totals",
+  "description": "Add two products, remove the Trail Mug, and verify that the remaining cart total is correct. The demo intentionally leaves the aggregate totals stale after removal.",
+  "target": {
+    "kind": "local_demo"
+  },
+  "steps": [
+    {
+      "action": "open",
+      "label": "Load the shop"
+    },
+    {
+      "action": "click",
+      "target": "add-trail-mug",
+      "label": "Add Trail Mug"
+    },
+    {
+      "action": "click",
+      "target": "add-field-notebook",
+      "label": "Add Field Notebook"
+    },
+    {
+      "action": "click",
+      "target": "remove-trail-mug",
+      "label": "Remove Trail Mug"
+    }
+  ],
+  "capture": [
+    "total",
+    "subtotal",
+    "checkout-total"
+  ],
+  "invariants": [
+    {
+      "rule": "total_equals_sum_of_line_totals"
+    },
+    {
+      "rule": "cart_total_matches_quantities"
+    },
+    {
+      "rule": "checkout_total_equals_total"
+    }
+  ]
+}

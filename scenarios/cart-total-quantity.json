@@ -1,0 +1,21 @@
+{
+  "id": "cart-total-quantity",
+  "name": "Quantity change keeps cart totals in sync",
+  "description": "Add a Trail Mug, raise its quantity to two, and check that every displayed total reflects 2 x $18.00. The shop intentionally leaves the aggregate totals at the previous value.",
+  "target": { "kind": "local_demo" },
+  "steps": [
+    { "action": "open", "label": "Load the shop" },
+    { "action": "click", "target": "add-trail-mug", "label": "Add Trail Mug" },
+    {
+      "action": "change_quantity",
+      "target": "quantity-trail-mug",
+      "value": "2",
+      "label": "Set Trail Mug quantity to 2"
+    }
+  ],
+  "capture": ["total", "subtotal", "checkout-total"],
+  "invariants": [
+    { "rule": "total_equals_sum_of_line_totals" },
+    { "rule": "cart_total_matches_quantities" }
+  ]
+}

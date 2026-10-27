@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bugsafari"
+version = "0.2.0"
+description = "Deterministic browser exploration and rule-based bug detection"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "Flask>=3.0,<4.0",
+    "playwright>=1.45,<2.0",
+    "streamlit>=1.38,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9.0",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+bugsafari = "bugsafari.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["bugsafari*", "app*", "demo_app*"]
+
+[tool.setuptools.package-data]
+demo_app = ["templates/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "unit: fast tests that need no browser or server",
+    "integration: launches a real browser and/or the demo server",
+    "cli: exercises the command-line interface",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [".venv", "artifacts", ".bugsafari"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
