@@ -1,68 +1,114 @@
 # BugSafari
 
-BugSafari is an Agentic AI hackathon project for exploring web applications, checking explicit behavior rules, and producing reproducible bug reports. The problem it targets is that failures caused by unexpected combinations of actions can be difficult to find and reproduce manually.
+**Autonomous Web Bug Detection and Reproducible Browser Testing**
 
-## First implementation
+BugSafari is a browser-testing project designed to explore web applications, detect invariant violations, verify reproducibility, and generate actionable bug reports.
 
-This first vertical slice runs a deterministic Playwright scenario against a local Flask e-commerce demo. It adds a Trail Mug, changes its quantity to two, reads the displayed total, and checks it against a Python invariant. The shop intentionally leaves the displayed total at `$18.00` after quantity changes, although the correct total is `$36.00`. Line item quantity and line total update; the stale subtotal, total, and checkout total are the isolated seeded defect. Product addition and removal work normally.
+## Features
 
-The expected behavior is that subtotal, total, and checkout summary reflect the sum of each product price multiplied by its quantity. The faulty behavior is that these totals remain at their previous value after a quantity change. Detection is a confirmed invariant violation; browser or test failures are separately represented as execution errors.
+- **Browser automation:** Interacts with web applications using Playwright.
+- **Invariant-based detection:** Checks application behavior against defined rules.
+- **Scenario-driven testing:** Runs repeatable test scenarios from JSON configuration files.
+- **Bug reporting:** Records violated rules, expected and actual values, and reproduction steps.
+- **Replay verification:** Re-runs a scenario to check whether a detected issue can be reproduced.
+- **Reproduction minimization:** Attempts to find a shorter sequence of actions that preserves a finding.
+- **Dashboard:** Provides a Streamlit interface for selecting scenarios, running tests, viewing results, and exporting JSON reports.
+- **Test suite:** Includes automated tests for core functionality and supporting components.
 
-## Architecture
+## Project Structure
 
-- `demo_app/`: local Flask shop and its deliberately seeded frontend defect.
-- `bugsafari/browser/`: Playwright controller with structured action recording.
-- `bugsafari/engine/`: bounded deterministic scenario and managed local server.
-- `bugsafari/detection/`: explicit integer-cent invariant checks.
-- `bugsafari/reporting/`: finding and run data models plus reproduction formatting.
-- `app/dashboard.py`: Streamlit interface that invokes the actual browser workflow.
-- `tests/`: unit checks and a browser-backed seeded-bug regression.
-- `artifacts/`: screenshot output (generated files are ignored by Git).
+```text
+BugSafari/
+├── app/
+│   ├── config.py
+│   └── dashboard.py
+├── bugsafari/
+│   ├── browser/
+│   ├── detection/
+│   ├── engine/
+│   ├── reporting/
+│   └── scenarios/
+├── demo_app/
+│   ├── app.py
+│   └── templates/
+├── scenarios/
+├── tests/
+├── conftest.py
+├── pyproject.toml
+└── requirements-dev.txt
+```
 
-Actions are represented as records so a future planner can supply a sequence without changing the browser controller or detector. The current planner is only a fixed scenario. Automatic failure minimization, autonomous or LLM-driven exploration, and generated regression tests are future work. No API key is required.
+## Requirements
 
-## Prerequisites and installation
+- Python 3.11 or a compatible version supported by the project
+- Git
+- A supported browser environment for Playwright
+- Windows, macOS, or Linux
 
-Use Python 3.11 or newer. From the project root:
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/ooha-chekuri/BugSafari.git
+cd BugSafari
+```
+
+Create and activate a virtual environment.
+
+**Windows PowerShell:**
 
 ```powershell
-py -3.11 -m venv .venv
+python -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+```
+
+Install the project dependencies:
+
+```powershell
+python -m pip install -r requirements-dev.txt
 python -m playwright install chromium
 ```
 
-The browser-backed test starts and stops its own local Flask server on an available local port, so it can run while the standalone demo is open. It writes a screenshot under `artifacts/` when the test succeeds.
-
-## Run the applications
-
-Start the demo shop in one terminal:
+## Run the Dashboard
 
 ```powershell
-python -m demo_app.app
+python -m streamlit run app/dashboard.py
 ```
 
-Open <http://127.0.0.1:5000>.
+Open the local URL displayed in the terminal.
 
-Start the dashboard in another terminal:
+Select a scenario and click **Run Demo Test** to inspect the browser actions and results.
+
+## Run Tests
 
 ```powershell
-streamlit run app/dashboard.py
+python -m pytest -q
 ```
 
-Use **Run demo test** to launch the actual browser scenario and view its action log, result, finding, reproduction steps, and screenshot. A detected seeded defect is a successful BugSafari detection run; an inability to execute the browser is reported as an execution error.
+## Scenario Configuration
 
-## Tests
+Test scenarios are defined using JSON files in the `scenarios/` directory. A scenario specifies the target application, browser actions, captured values, and invariants to evaluate.
 
-```powershell
-pytest
-```
+Available scenarios include:
 
-`tests/test_invariants.py` checks money handling and correct totals. `tests/test_seeded_bug.py` runs Chromium against the demo and verifies the mismatch and recorded action history. Install the Playwright Chromium browser before running the latter.
+- `cart-remove-total`
+- `cart-total-quantity`
+- `internal-consistency`
 
-## Next milestones
+## Reports and Evidence
 
-1. Add scenario definitions and configurable action sequences, plus more independently seeded invariants.
-2. Implement failure minimization that removes actions while preserving a confirmed finding.
-3. Add a pluggable planner interface and evaluate an optional LLM planner against the deterministic baseline.
+BugSafari can present detected findings and reproduction instructions in the dashboard and export a JSON bug report. Depending on the run, reports can include browser actions, replay-verification status, minimization diagnostics, and screenshot evidence.
+
+## Current Status
+
+The project is under active development. Run the automated test suite before accepting changes or preparing a release. Detection results depend on the scenario and the invariants evaluated during each run.
+
+## Contributors
+
+- Ooha Chekuri
+- Hari Kowshik
+
+## License
+
+Add the project's chosen license before distributing it publicly.
