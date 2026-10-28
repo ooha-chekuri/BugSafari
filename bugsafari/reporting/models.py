@@ -1,4 +1,3 @@
-
 """Data models shared by the executor, detector, reporter, and dashboard.
 
 Everything here is plain data so it can be serialized, compared, and unit
@@ -11,7 +10,7 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
 
-RUN_SCHEMA_VERSION = 1
+RUN_SCHEMA_VERSION = 2
 
 
 class RunStatus(str, Enum):
@@ -63,6 +62,82 @@ class CatalogItem:
 
 
 @dataclass(frozen=True)
+class ElementObservation:
+    """Serializable DOM facts used by deterministic UI and accessibility rules."""
+
+    selector: str
+    tag: str
+    text: str = ""
+    visible: bool = True
+    interactive: bool = False
+    bbox: dict[str, float] = field(default_factory=dict)
+    parent_selector: str | None = None
+    parent_bbox: dict[str, float] = field(default_factory=dict)
+    parent_clips: bool = False
+    font_size_px: float | None = None
+    font_weight: str = "400"
+    color: str | None = None
+    background_color: str | None = None
+    position: str = "static"
+    z_index: int | None = None
+    role: str | None = None
+    aria_modal: bool = False
+    accessible_name: str | None = None
+    has_label: bool | None = None
+    image_loaded: bool | None = None
+    natural_width: int | None = None
+    natural_height: int | None = None
+    alt: str | None = None
+    decorative: bool = False
+    object_fit: str = "fill"
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ElementObservation:
+        return cls(
+            selector=str(data.get("selector", "")),
+            tag=str(data.get("tag", "")),
+            text=str(data.get("text", "")),
+            visible=bool(data.get("visible", True)),
+            interactive=bool(data.get("interactive", False)),
+            bbox={str(k): float(v) for k, v in dict(data.get("bbox", {})).items()},
+            parent_selector=(
+                None if data.get("parent_selector") is None else str(data["parent_selector"])
+            ),
+            parent_bbox={str(k): float(v) for k, v in dict(data.get("parent_bbox", {})).items()},
+            parent_clips=bool(data.get("parent_clips", False)),
+            font_size_px=(
+                None if data.get("font_size_px") is None else float(data["font_size_px"])
+            ),
+            font_weight=str(data.get("font_weight", "400")),
+            color=None if data.get("color") is None else str(data["color"]),
+            background_color=(
+                None if data.get("background_color") is None else str(data["background_color"])
+            ),
+            position=str(data.get("position", "static")),
+            z_index=None if data.get("z_index") is None else int(data["z_index"]),
+            role=None if data.get("role") is None else str(data["role"]),
+            aria_modal=bool(data.get("aria_modal", False)),
+            accessible_name=(
+                None if data.get("accessible_name") is None else str(data["accessible_name"])
+            ),
+            has_label=(None if data.get("has_label") is None else bool(data["has_label"])),
+            image_loaded=(None if data.get("image_loaded") is None else bool(data["image_loaded"])),
+            natural_width=(
+                None if data.get("natural_width") is None else int(data["natural_width"])
+            ),
+            natural_height=(
+                None if data.get("natural_height") is None else int(data["natural_height"])
+            ),
+            alt=None if data.get("alt") is None else str(data["alt"]),
+            decorative=bool(data.get("decorative", False)),
+            object_fit=str(data.get("object_fit", "fill")),
+        )
+
+
+@dataclass(frozen=True)
 class Snapshot:
     """Captured page state used by detection rules."""
 
@@ -72,6 +147,9 @@ class Snapshot:
     texts: dict[str, str] = field(default_factory=dict)
     line_totals: dict[str, str] = field(default_factory=dict)
     row_count: int = 0
+    elements: tuple[ElementObservation, ...] = ()
+    viewport: dict[str, int] = field(default_factory=dict)
+    document_width: int | None = None
 
     def text(self, test_id: str, default: str = "") -> str:
         return self.texts.get(test_id, default)
@@ -79,13 +157,14 @@ class Snapshot:
     def to_dict(self) -> dict[str, Any]:
         return {
             "url": self.url,
-            "catalog": {
-                key: asdict(item) for key, item in self.catalog.items()
-            },
+            "catalog": {key: asdict(item) for key, item in self.catalog.items()},
             "cart": dict(self.cart),
             "texts": dict(self.texts),
             "line_totals": dict(self.line_totals),
             "row_count": self.row_count,
+            "elements": [element.to_dict() for element in self.elements],
+            "viewport": dict(self.viewport),
+            "document_width": self.document_width,
         }
 
     @classmethod
@@ -101,21 +180,19 @@ class Snapshot:
         return cls(
             url=str(data.get("url", "")),
             catalog=catalog,
-            cart={
-                str(key): int(value)
-                for key, value in dict(data.get("cart", {})).items()
-            },
-            texts={
-                str(key): str(value)
-                for key, value in dict(data.get("texts", {})).items()
-            },
+            cart={str(key): int(value) for key, value in dict(data.get("cart", {})).items()},
+            texts={str(key): str(value) for key, value in dict(data.get("texts", {})).items()},
             line_totals={
-                str(key): str(value)
-                for key, value in dict(
-                    data.get("line_totals", {})
-                ).items()
+                str(key): str(value) for key, value in dict(data.get("line_totals", {})).items()
             },
             row_count=int(data.get("row_count", 0)),
+            elements=tuple(ElementObservation.from_dict(item) for item in data.get("elements", [])),
+            viewport={
+                str(key): int(value) for key, value in dict(data.get("viewport", {})).items()
+            },
+            document_width=(
+                None if data.get("document_width") is None else int(data["document_width"])
+            ),
         )
 
 
@@ -130,6 +207,26 @@ class Finding:
     status: str = "confirmed_violation"
     details: str = ""
     severity: str = "major"
+    category: str = "Functional"
+    title: str = ""
+    selector: str | None = None
+    page_url: str | None = None
+    viewport: dict[str, int] = field(default_factory=dict)
+    observed_values: dict[str, Any] = field(default_factory=dict)
+    bug_id: str | None = None
+
+    def __post_init__(self) -> None:
+        """Normalize legacy severity names to the shared report vocabulary."""
+        normalized = self.severity.strip().lower()
+        self.severity = {
+            "critical": "Critical",
+            "high": "High",
+            "major": "High",
+            "medium": "Medium",
+            "moderate": "Medium",
+            "low": "Low",
+            "minor": "Low",
+        }.get(normalized, self.severity)
 
     def signature(self) -> tuple[str, str, str]:
         """Identity used to verify that a finding persists."""
@@ -145,12 +242,20 @@ class Finding:
             expected=str(data["expected"]),
             actual=str(data["actual"]),
             reproduction_steps=[
-                ActionRecord.from_dict(item)
-                for item in data.get("reproduction_steps", [])
+                ActionRecord.from_dict(item) for item in data.get("reproduction_steps", [])
             ],
             status=str(data.get("status", "confirmed_violation")),
             details=str(data.get("details", "")),
             severity=str(data.get("severity", "major")),
+            category=str(data.get("category", "Functional")),
+            title=str(data.get("title", "")),
+            selector=None if data.get("selector") is None else str(data["selector"]),
+            page_url=None if data.get("page_url") is None else str(data["page_url"]),
+            viewport={
+                str(key): int(value) for key, value in dict(data.get("viewport", {})).items()
+            },
+            observed_values=dict(data.get("observed_values", {})),
+            bug_id=None if data.get("bug_id") is None else str(data["bug_id"]),
         )
 
 
@@ -186,19 +291,11 @@ class RunResult:
             "minimized_actions": (
                 None
                 if self.minimized_actions is None
-                else [
-                    action.to_dict()
-                    for action in self.minimized_actions
-                ]
+                else [action.to_dict() for action in self.minimized_actions]
             ),
             "minimization_stats": self.minimization_stats,
-            "finding": (
-                self.finding.to_dict() if self.finding else None
-            ),
-            "findings": [
-                finding.to_dict() for finding in self.findings
-            ],
-            "screenshot": self.screenshot,
+            "finding": (self.finding.to_dict() if self.finding else None),
+            "findings": [finding.to_dict() for finding in self.findings],
             "error": self.error,
         }
 
@@ -242,20 +339,12 @@ class StoredRun:
             "minimized_actions": (
                 None
                 if self.minimized_actions is None
-                else [
-                    action.to_dict()
-                    for action in self.minimized_actions
-                ]
+                else [action.to_dict() for action in self.minimized_actions]
             ),
-            "findings": [
-                finding.to_dict() for finding in self.findings
-            ],
+            "findings": [finding.to_dict() for finding in self.findings],
             "error": self.error,
-            "snapshot": (
-                self.snapshot.to_dict() if self.snapshot else None
-            ),
+            "snapshot": (self.snapshot.to_dict() if self.snapshot else None),
             "environment": dict(self.environment),
-            "screenshot": self.screenshot,
         }
 
     @classmethod
@@ -267,40 +356,19 @@ class StoredRun:
             status=RunStatus.coerce(data["status"]),
             started_at=str(data["started_at"]),
             duration_s=float(data.get("duration_s", 0)),
-            actions=[
-                ActionRecord.from_dict(item)
-                for item in data.get("actions", [])
-            ],
+            actions=[ActionRecord.from_dict(item) for item in data.get("actions", [])],
             minimized_actions=(
                 None
                 if data.get("minimized_actions") is None
-                else [
-                    ActionRecord.from_dict(item)
-                    for item in data["minimized_actions"]
-                ]
+                else [ActionRecord.from_dict(item) for item in data["minimized_actions"]]
             ),
-            findings=[
-                Finding.from_dict(item)
-                for item in data.get("findings", [])
-            ],
-            error=(
-                None if data.get("error") is None
-                else str(data["error"])
-            ),
+            findings=[Finding.from_dict(item) for item in data.get("findings", [])],
+            error=(None if data.get("error") is None else str(data["error"])),
             snapshot=(
-                None
-                if data.get("snapshot") is None
-                else Snapshot.from_dict(data["snapshot"])
+                None if data.get("snapshot") is None else Snapshot.from_dict(data["snapshot"])
             ),
             environment={
-                str(key): str(value)
-                for key, value in dict(
-                    data.get("environment", {})
-                ).items()
+                str(key): str(value) for key, value in dict(data.get("environment", {})).items()
             },
-            screenshot=(
-                None
-                if data.get("screenshot") is None
-                else str(data["screenshot"])
-            ),
+            screenshot=(None if data.get("screenshot") is None else str(data["screenshot"])),
         )

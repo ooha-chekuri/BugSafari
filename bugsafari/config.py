@@ -37,6 +37,7 @@ class Settings:
     seed: int = 0
     minimize: bool = True
     max_minimize_attempts: int = 40
+    small_font_px: float = 12.0
 
     def with_overrides(self, **changes: object) -> Settings:
         """Return a copy with the given fields replaced (used by CLI flags)."""
@@ -68,6 +69,16 @@ def _integer(env: Mapping[str, str], name: str, default: int) -> int:
         return int(raw.strip())
     except ValueError as exc:
         raise ValueError(f"{name} must be an integer, got {raw!r}") from exc
+
+
+def _decimal(env: Mapping[str, str], name: str, default: float) -> float:
+    raw = env.get(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return float(raw.strip())
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a number, got {raw!r}") from exc
 
 
 def _path(env: Mapping[str, str], name: str, default: Path) -> Path:
@@ -109,6 +120,7 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         seed=_integer(source, "BUGSAFARI_SEED", 0),
         minimize=_flag(source, "BUGSAFARI_MINIMIZE", True),
         max_minimize_attempts=_integer(source, "BUGSAFARI_MAX_MINIMIZE_ATTEMPTS", 40),
+        small_font_px=_decimal(source, "BUGSAFARI_SMALL_FONT_PX", 12.0),
     )
     _validate(settings)
     return settings
@@ -123,6 +135,8 @@ def _validate(settings: Settings) -> None:
         raise ValueError("BUGSAFARI_RUN_TIMEOUT_S must be positive")
     if settings.max_minimize_attempts <= 0:
         raise ValueError("BUGSAFARI_MAX_MINIMIZE_ATTEMPTS must be positive")
+    if settings.small_font_px <= 0:
+        raise ValueError("BUGSAFARI_SMALL_FONT_PX must be positive")
     if settings.planner not in PLANNERS:
         raise ValueError(
             f"BUGSAFARI_PLANNER must be one of {', '.join(PLANNERS)}; got {settings.planner!r}"

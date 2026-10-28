@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from bugsafari.detection.dom_checks import check_dom
 from bugsafari.detection.invariants import RuleError
 from bugsafari.detection.rules import get_rule
 from bugsafari.reporting.models import ActionRecord, Finding, Snapshot
@@ -35,6 +36,8 @@ def evaluate(
     snapshot: Snapshot,
     specs: tuple[InvariantSpec, ...] | list[InvariantSpec],
     actions: list[ActionRecord],
+    *,
+    small_font_px: float = 12.0,
 ) -> Evaluation:
     """Run every invariant in order, collecting confirmed findings and errors."""
     evaluation = Evaluation()
@@ -48,4 +51,7 @@ def evaluate(
         if finding is not None:
             finding.reproduction_steps = list(actions)
             evaluation.findings.append(finding)
+    for finding in check_dom(snapshot, small_font_px=small_font_px):
+        finding.reproduction_steps = list(actions)
+        evaluation.findings.append(finding)
     return evaluation

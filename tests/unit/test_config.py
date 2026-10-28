@@ -17,6 +17,7 @@ def test_defaults_need_no_environment():
     assert settings.headless is True
     assert settings.planner == "scripted"
     assert settings.minimize is True
+    assert settings.small_font_px == 12
     assert settings.scenarios_dir == PROJECT_ROOT / "scenarios"
     assert isinstance(settings, Settings)
 
@@ -30,6 +31,7 @@ def test_environment_overrides_are_applied():
             "BUGSAFARI_PLANNER": "Seeded_Random",
             "BUGSAFARI_MINIMIZE": "0",
             "BUGSAFARI_SEED": "7",
+            "BUGSAFARI_SMALL_FONT_PX": "10.5",
         }
     )
     assert settings.target_url == "http://127.0.0.1:5000"
@@ -38,10 +40,13 @@ def test_environment_overrides_are_applied():
     assert settings.planner == "seeded_random"
     assert settings.minimize is False
     assert settings.seed == 7
+    assert settings.small_font_px == 10.5
 
 
 def test_relative_output_paths_resolve_against_project_root():
-    settings = load_settings({"BUGSAFARI_RUNS_DIR": ".bugsafari/runs", "BUGSAFARI_ARTIFACT_DIR": "artifacts"})
+    settings = load_settings(
+        {"BUGSAFARI_RUNS_DIR": ".bugsafari/runs", "BUGSAFARI_ARTIFACT_DIR": "artifacts"}
+    )
     assert settings.runs_dir == PROJECT_ROOT / ".bugsafari" / "runs"
     assert settings.artifact_dir == PROJECT_ROOT / "artifacts"
     assert settings.runs_dir.is_absolute()
@@ -63,6 +68,7 @@ def test_absolute_output_paths_are_kept(tmp_path: Path):
         ({"BUGSAFARI_RUN_TIMEOUT_S": "0"}, "must be positive"),
         ({"BUGSAFARI_MAX_MINIMIZE_ATTEMPTS": "0"}, "must be positive"),
         ({"BUGSAFARI_SEED": "abc"}, "must be an integer"),
+        ({"BUGSAFARI_SMALL_FONT_PX": "0"}, "must be positive"),
     ],
 )
 def test_invalid_settings_fail_loudly(env, needle):

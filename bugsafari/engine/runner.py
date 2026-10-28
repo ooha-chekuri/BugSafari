@@ -1,4 +1,3 @@
-
 """Compose one exploration run: target, browser, steps, snapshot, rules, storage."""
 
 from __future__ import annotations
@@ -16,6 +15,7 @@ from bugsafari.browser.controller import BrowserController
 from bugsafari.browser.launch import launch_browser
 from bugsafari.browser.snapshot import capture_snapshot
 from bugsafari.config import Settings, load_settings
+from bugsafari.detection.dom_checks import check_dom
 from bugsafari.detection.engine import evaluate
 from bugsafari.engine.executor import Executor
 from bugsafari.engine.minimizer import MinimizeResult, minimize_steps
@@ -61,9 +61,7 @@ def run_scenario(
     if steps is not None:
         planned = tuple(steps)
     elif settings.planner == "seeded_random":
-        planned = tuple(
-            SeededRandomPlanner(scenario, seed=settings.seed).plan()
-        )
+        planned = tuple(SeededRandomPlanner(scenario, seed=settings.seed).plan())
     else:
         planned = tuple(ScriptedPlanner(scenario).steps)
 
@@ -75,16 +73,10 @@ def run_scenario(
     started = monotonic()
     snapshot: Snapshot | None = None
 
-    shot_target = (
-        Path(screenshot_path)
-        if screenshot_path
-        else settings.artifact_dir / "latest.png"
-    )
+    shot_target = Path(screenshot_path) if screenshot_path else settings.artifact_dir / "latest.png"
 
     try:
-        with resolve_target(
-            scenario.target, settings, app_factory
-        ) as target:
+        with resolve_target(scenario.target, settings, app_factory) as target:
             with sync_playwright() as playwright:
                 browser = launch_browser(playwright, settings)
 
@@ -101,20 +93,12 @@ def run_scenario(
                     result.status = attempt.status
                     result.actions = attempt.actions
                     result.findings = attempt.findings
-                    result.finding = (
-                        attempt.findings[0]
-                        if attempt.findings
-                        else None
-                    )
+                    result.finding = attempt.findings[0] if attempt.findings else None
                     result.error = attempt.error
                     result.screenshot = attempt.screenshot
                     snapshot = attempt.snapshot
 
-                    should_minimize = (
-                        settings.minimize
-                        if minimize is None
-                        else minimize
-                    )
+                    should_minimize = settings.minimize if minimize is None else minimize
 
                     if attempt.findings and should_minimize:
                         minimized_actions, minimization_stats = _minimize(
@@ -153,9 +137,7 @@ def run_scenario(
         return result
 
     if stored.screenshot:
-        result.screenshot = str(
-            store.run_dir(stored.run_id) / stored.screenshot
-        )
+        result.screenshot = str(store.run_dir(stored.run_id) / stored.screenshot)
 
     return result
 
@@ -216,8 +198,7 @@ def _minimize(
     )
 
     reproduced = any(
-        finding.signature() == target_finding.signature()
-        for finding in replay.findings
+        finding.signature() == target_finding.signature() for finding in replay.findings
     )
 
     stats["same_finding_preserved"] = reproduced
@@ -252,12 +233,31 @@ def _attempt(
                 screenshot=_screenshot(controller, screenshot_path),
             )
 
-        snapshot = capture_snapshot(page, scenario.capture)
+        include_shop_data = (
+            scenario.target.kind == "local_demo"
+            or bool(scenario.capture)
+            or bool(scenario.invariants)
+        )
+        snapshot = capture_snapshot(page, scenario.capture, include_shop_data=include_shop_data)
         evaluation = evaluate(
             snapshot,
             scenario.invariants,
             controller.actions,
+            small_font_px=settings.small_font_px,
         )
+        original_viewport = page.viewport_size
+        responsive_keys = {(finding.rule, finding.selector) for finding in evaluation.findings}
+        for viewport_width in (375, 768, 1280):
+            page.set_viewport_size({"width": viewport_width, "height": 812})
+            responsive_snapshot = capture_snapshot(page, include_shop_data=include_shop_data)
+            for finding in check_dom(responsive_snapshot, small_font_px=settings.small_font_px):
+                finding.reproduction_steps = list(controller.actions)
+                key = (finding.rule, finding.selector)
+                if key not in responsive_keys:
+                    evaluation.findings.append(finding)
+                    responsive_keys.add(key)
+        if original_viewport is not None:
+            page.set_viewport_size(original_viewport)
         shot = _screenshot(controller, screenshot_path)
 
         if evaluation.confirmed:

@@ -130,6 +130,10 @@ class RunStore:
         except json.JSONDecodeError as exc:
             raise StoreError(f"{directory / RUN_JSON}: invalid JSON ({exc})") from exc
         run = StoredRun.from_dict(data)
+        # Screenshot files are retained as internal debugging artifacts. Their
+        # path is deliberately omitted from serialized reports.
+        if not run.screenshot and (directory / SCREENSHOT).is_file():
+            run.screenshot = SCREENSHOT
         report_file = directory / REPORT_MD
         if report_file.is_file():
             run.report = report_file.read_text(encoding="utf-8")
