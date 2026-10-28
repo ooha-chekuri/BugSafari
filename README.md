@@ -10,14 +10,28 @@ The current codebase includes a Streamlit dashboard (`app/dashboard.py`), Playwr
 
 The dashboard now defaults to a read-only scan of a user-supplied website URL. It captures DOM observations and runs deterministic geometry/image/accessibility checks at responsive widths. The bundled cart scenarios remain an optional demo mode. Browser-backed website verification, goal-directed crawling, and a persona-driven browser-isolated user-bot swarm remain unfinished. See the [gap analysis](docs/PRD_GAP_ANALYSIS.md) for requirement status and environment limitations.
 
-## BugSafari 2.0 implementation guide
+## Features Listed
+
+The current build includes:
+
+- **Website scanning:** Scan a supplied HTTP or HTTPS page in read-only mode at 375, 768, and 1280 pixel viewport widths. The scan does not crawl links or submit forms.
+- **UI and layout checks:** Report substantial overlaps between unrelated visible elements, clipped or off-screen content, horizontal overflow, interactive targets smaller than 24 CSS pixels, and text below the configurable minimum size.
+- **Overlay review:** Flag large, high-stacking fixed layers for review. A flagged dialog may be intentional; the report asks reviewers to check its purpose, accessibility, and dismissibility.
+- **Image checks:** Detect failed image loads, likely distortion, images extending beyond their container or viewport, and missing alternative text on meaningful images.
+- **Accessibility checks:** Check text contrast, accessible names for buttons and links, and labels for form controls.
+- **Reproducible reports:** Show finding severity, category, location, expected and observed values, replay status, and reproduction details. Download text-only JSON and HTML reports.
+- **Demo scenarios:** Optionally run the bundled cart scenarios for deterministic functional checks, replay, and reproduction minimization.
+
+These checks are deterministic and limited to the observations captured from the page. They do not guarantee detection of every website bug. Goal-driven crawling, full WCAG conformance, and isolated multi-bot website exploration are planned work, not current features.
+
+## BugSafari implementation guide
 
 Implement incrementally on top of the existing modules. Keep the demo runnable, preserve existing scenario/report compatibility where possible, and make each phase a small reviewable change. The PRD priority labels govern scope: finish P0 foundations before P1; leave P2 and scope-guard items for later. Do not rewrite the application as a greenfield project.
 
 ### Phase 1 — Baseline, audit, and traceability
 
 1. Confirm the repository, branch, working-tree changes, and current test baseline before editing. Preserve user changes.
-2. Read the complete BugSafari 2.0 PRD and map each requirement to existing code, a gap, and a verification step. Record the map in a maintained implementation checklist or issue tracker.
+2. Read the complete BugSafari PRD and map each requirement to existing code, a gap, and a verification step. Record the map in a maintained implementation checklist or issue tracker.
 3. Inspect the dashboard, browser controller and snapshot, explorer/planner/executor, detection rules, models/reporter/store, minimizer/replay, demo defects, and tests.
 4. Keep a PRD traceability table with status (`existing`, `partial`, `planned`, `verified`), implementation location, and test/demo evidence. Do not mark a requirement complete because a module exists.
 
@@ -123,6 +137,8 @@ See [`.env.example`](.env.example) for supported settings. Current defaults use 
 
 - Ooha Chekuri
 - Hari Kowshik
+- Asha Ruksana Shaik
+- Bharath Thotakura
 
 ## License
 
