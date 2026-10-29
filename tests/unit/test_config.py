@@ -14,6 +14,7 @@ def test_defaults_need_no_environment():
     assert settings.target_url is None
     assert settings.demo_host == "127.0.0.1"
     assert settings.demo_port == 0
+    assert settings.demo_base_url == "http://127.0.0.1:5000"
     assert settings.headless is True
     assert settings.planner == "scripted"
     assert settings.minimize is True
@@ -26,6 +27,7 @@ def test_environment_overrides_are_applied():
     settings = load_settings(
         {
             "BUGSAFARI_TARGET_URL": "http://127.0.0.1:5000",
+            "BUGSAFARI_DEMO_BASE_URL": "http://localhost:5000",
             "BUGSAFARI_HEADLESS": "false",
             "BUGSAFARI_ACTION_TIMEOUT_MS": "1500",
             "BUGSAFARI_PLANNER": "Seeded_Random",
@@ -35,6 +37,7 @@ def test_environment_overrides_are_applied():
         }
     )
     assert settings.target_url == "http://127.0.0.1:5000"
+    assert settings.demo_base_url == "http://localhost:5000"
     assert settings.headless is False
     assert settings.action_timeout_ms == 1500
     assert settings.planner == "seeded_random"

@@ -13,6 +13,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_DEMO_BASE_URL = "http://127.0.0.1:5000"
 
 PLANNERS = ("scripted", "seeded_random", "llm")
 _TRUE_VALUES = {"1", "true", "t", "yes", "y", "on"}
@@ -26,6 +27,7 @@ class Settings:
     target_url: str | None = None
     demo_host: str = "127.0.0.1"
     demo_port: int = 0
+    demo_base_url: str = DEFAULT_DEMO_BASE_URL
     headless: bool = True
     browser_channel: str | None = None
     action_timeout_ms: int = 5_000
@@ -109,6 +111,10 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         target_url=_text(source, "BUGSAFARI_TARGET_URL", None),
         demo_host=_text(source, "BUGSAFARI_DEMO_HOST", "127.0.0.1") or "127.0.0.1",
         demo_port=_integer(source, "BUGSAFARI_DEMO_PORT", 0),
+        demo_base_url=(
+            _text(source, "BUGSAFARI_DEMO_BASE_URL", DEFAULT_DEMO_BASE_URL)
+            or DEFAULT_DEMO_BASE_URL
+        ),
         headless=_flag(source, "BUGSAFARI_HEADLESS", True),
         browser_channel=_lower(source, "BUGSAFARI_BROWSER_CHANNEL"),
         action_timeout_ms=_integer(source, "BUGSAFARI_ACTION_TIMEOUT_MS", 5_000),

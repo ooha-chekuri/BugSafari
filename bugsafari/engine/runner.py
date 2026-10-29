@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import platform
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from importlib import metadata
 from pathlib import Path
 from time import monotonic
@@ -111,6 +111,14 @@ def run_scenario(
                         )
                         result.minimized_actions = minimized_actions
                         result.minimization_stats = minimization_stats
+
+                    if target.managed:
+                        snapshot = _rewrite_managed_demo_urls(
+                            result,
+                            snapshot,
+                            target.url,
+                            settings.demo_base_url,
+                        )
 
                 finally:
                     browser.close()
@@ -295,6 +303,42 @@ def _attempt(
 
     finally:
         context.close()
+
+
+def _rewrite_managed_demo_urls(
+    result: RunResult,
+    snapshot: Snapshot | None,
+    managed_url: str,
+    configured_url: str,
+) -> Snapshot | None:
+    """Replace the temporary managed-server origin in persisted run data."""
+    for action in result.actions + (result.minimized_actions or []):
+        action.target = _replace_url_origin(action.target, managed_url, configured_url)
+
+    for finding in result.findings:
+        if finding.page_url:
+            finding.page_url = _replace_url_origin(
+                finding.page_url,
+                managed_url,
+                configured_url,
+            )
+        for action in finding.reproduction_steps:
+            action.target = _replace_url_origin(action.target, managed_url, configured_url)
+
+    if snapshot is not None:
+        snapshot = replace(
+            snapshot,
+            url=_replace_url_origin(snapshot.url, managed_url, configured_url),
+        )
+    return snapshot
+
+
+def _replace_url_origin(value: str, original: str, replacement: str) -> str:
+    if value == original:
+        return replacement
+    if value.startswith((f"{original}/", f"{original}?", f"{original}#")):
+        return replacement.rstrip("/") + value[len(original) :]
+    return value
 
 
 def _screenshot(
